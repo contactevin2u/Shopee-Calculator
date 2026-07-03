@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopee Profit Calculator</title>
+<style>
+  :root{
+    --orange:#ee4d2d; --orange-d:#d73211; --green:#26aa5f; --green-l:#e9f8ef;
+    --ink:#2c3345; --muted:#8a93a6; --line:#e6e9f0; --bg:#f2f4f8; --card:#fff;
+    --red:#e0483a; --amber:#f0932b; --blue:#3d7cf0; --shadow:0 8px 30px rgba(20,30,60,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.4}
+  .wrap{max-width:860px;margin:0 auto;padding:16px}
+  header{background:linear-gradient(135deg,var(--orange),#f96a4c);color:#fff;border-radius:14px 14px 0 0;
+    padding:16px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  header h1{font-size:19px;margin:0;letter-spacing:.3px;font-weight:600}
+  .hbtn{background:rgba(255,255,255,.18);border:0;color:#fff;width:38px;height:38px;border-radius:9px;
+    cursor:pointer;font-size:17px;display:grid;place-items:center;transition:.15s}
+  .hbtn:hover{background:rgba(255,255,255,.32)}
+  .hgroup{display:flex;gap:8px}
+  .app{background:var(--card);border-radius:0 0 14px 14px;box-shadow:var(--shadow);overflow:hidden}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .col{padding:20px 22px}
+  .col.left{border-right:1px solid var(--line)}
+  @media(max-width:820px){.col.left{border-right:0;border-bottom:1px solid var(--line)}}
+  .sec-title{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--orange);
+    font-weight:700;margin:4px 0 12px}
+  .sec-title.alt{color:var(--amber)}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .cat-row{margin-bottom:4px}
+  .sec-title:has(+ .cat-row){margin-bottom:4px}   /* pull Cluster up close to its heading */
+  .row label{width:118px;min-width:118px;text-align:right;color:#48506a;font-size:13px}
+  .row .inp{flex:1;display:flex;gap:8px}
+  input[type=text],input[type=number],select{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:14px;
+    color:var(--ink);background:#fbfcfe;outline:none;transition:.15s;text-align:right;font-variant-numeric:tabular-nums}
+  select{text-align:left;accent-color:var(--orange)}
+  /* opt into customizable rendering so the option hover-highlight follows the mouse (Chrome/Edge 2025+) */
+  select,::picker(select){appearance:base-select}
+  ::picker(select){border:1px solid var(--line);border-radius:9px;background:#fff;box-shadow:var(--shadow)}
+  select option{padding:8px 11px}
+  /* orange highlight that tracks the mouse, + the currently-selected option */
+  select option:hover,select option:checked,select option:focus{
+    background:var(--orange);color:#fff}
+  input:focus,select:focus{border-color:var(--orange);background:#fff;box-shadow:0 0 0 3px rgba(238,77,45,.12)}
+  input::placeholder{color:#c2c8d6;font-style:italic}
+  input:read-only{background:#f4f6fa;color:#48506a;border-color:#eef1f6;cursor:default}
+  input.cap{color:var(--amber);font-weight:700;border-color:#f4d19a;background:#fff8ec}
+  .pct{max-width:92px;font-style:normal}
+  .pct::after{content:'%'}
+  .amt{max-width:120px}
+  .chk{width:34px;min-width:34px;display:grid;place-items:center}
+  .chk input{width:19px;height:19px;accent-color:var(--orange);cursor:pointer}
+  .fee-row{border-left:3px solid transparent;padding-left:10px;margin-left:-10px;border-radius:2px}
+  .fee-row.on{border-left-color:var(--green)}
+  .divider{height:1px;background:var(--line);margin:14px 0}
+  .dashed{border-top:1px dashed var(--line);margin:12px 0}
+  .tot{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;font-weight:600}
+  .tot .lbl{color:#48506a}
+  .tot .val{font-variant-numeric:tabular-nums}
+  .tot.rate .rate-pct{color:var(--red);font-weight:700;margin-right:14px}
+  .tot.other .lbl{color:var(--amber)}
+  .col.right .tot .val{padding-right:11px}
+  /* right fee panel: shared 4-col grid so checkbox / label / % / RM all align */
+  .col.right .row{display:grid;grid-template-columns:26px minmax(0,1fr) 82px 104px;align-items:center;column-gap:8px}
+  .col.right .row .inp{display:contents}
+  .col.right .row .chk{grid-column:1;width:auto;min-width:0}
+  .col.right .row>label{grid-column:2;justify-self:start;text-align:left;width:auto;min-width:0}
+  /* rows without a checkbox (Commission, Transaction, AMS, Adjustment) start flush at the tick-box column */
+  .col.right .row:not(:has(.chk))>label{grid-column:1 / 3}
+  /* Commission & Transaction: align text with the tick-box glyph below */
+  .col.right .row>label.svc-indent{grid-column:1 / 3;padding-left:4px}
+  .col.right .row .pct{grid-column:3;max-width:none}
+  .col.right .row .amt{grid-column:4;max-width:none}
+  .col.right .row #adjust{grid-column:3 / 5;max-width:none}
+  .col.right .fee-head{margin-bottom:12px;align-items:end}
+  .col.right .fee-head .fh-title{grid-column:1 / 3;color:var(--orange);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  .col.right .fee-head .fh-col{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
+  .col.right .fee-head .fh-pct{grid-column:3}
+  .col.right .fee-head .fh-rm{grid-column:4}
+  .note{font-size:11.5px;color:var(--muted);margin:2px 0 0 128px}
+  .hint{font-size:11px;color:var(--muted);text-align:right;flex:1;padding-right:2px}
+
+  .result{margin:16px 22px 8px;border:1.5px solid #cdeede;background:var(--green-l);border-radius:12px;padding:16px 18px}
+  .result .line{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .result .k{color:#3a7a56;font-weight:600;font-size:13px}
+  .result .k small{display:block;color:#7fae95;font-weight:400;font-size:10.5px}
+  .result .v{font-variant-numeric:tabular-nums;font-weight:700}
+  .result .income .v{color:var(--green);font-size:26px}
+  .result .margin-line{justify-content:flex-end;margin:-4px 0 2px}
+  .result .margin-line .mv{color:#3a7a56;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums}
+  .result .profit .v{font-size:24px}
+  .result .profit.pos .v{color:var(--green)} .result .profit.neg .v{color:var(--red)}
+  .result .sub{border-top:1px dashed #bfe3cf;margin-top:8px;padding-top:10px}
+  .badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .badge{flex:1;min-width:120px;background:#fff;border:1px solid #d9ead9;border-radius:10px;padding:9px 12px;text-align:center}
+  .badge .bt{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .badge .bv{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .badge.neg .bv{color:var(--red)} .badge.pos .bv{color:var(--green)}
+
+  .actions{display:flex;gap:10px;align-items:center;padding:4px 22px 22px;flex-wrap:wrap}
+  .actions input#sku{max-width:170px;text-align:left;font-style:normal}
+  .btn{border:0;border-radius:9px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn.p{background:var(--green);color:#fff} .btn.p:hover{background:#1f9150}
+  .btn.g{background:#eef1f6;color:#48506a} .btn.g:hover{background:#e2e6ee}
+  .btn.o{background:#fff;color:var(--orange);border:1px solid var(--orange)} .btn.o:hover{background:#fff1ee}
+  .spacer{flex:1}
+
+  /* settings drawer */
+  .drawer-bg{position:fixed;inset:0;background:rgba(20,25,45,.45);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+  .drawer-bg.show{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:-360px;width:340px;max-width:90vw;height:100%;background:#fff;z-index:50;
+    box-shadow:-8px 0 30px rgba(0,0,0,.15);transition:.25s;padding:20px;overflow-y:auto}
+  .drawer.show{right:0}
+  .drawer h2{font-size:16px;margin:0 0 4px}
+  .drawer p.d{color:var(--muted);font-size:12px;margin:0 0 16px}
+  .opt{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .opt input{width:18px;height:18px;accent-color:var(--orange);margin-top:2px;cursor:pointer}
+  .opt .ot{font-weight:600} .opt .od{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .close-x{float:right;border:0;background:#eef1f6;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px}
+
+  /* saved list */
+  .saved{margin:0 22px 20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:none}
+  .saved.show{display:block}
+  .saved h3{margin:0;padding:12px 16px;background:#f7f9fc;font-size:13px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center}
+  .saved table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .saved th,.saved td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line)}
+  .saved th:first-child,.saved td:first-child{text-align:left}
+  .saved th{color:var(--muted);font-weight:600;background:#fcfdff}
+  .saved tr:hover td{background:rgba(238,77,45,.15)}
+  .saved .load{color:var(--blue);cursor:pointer;text-decoration:underline}
+  .saved .del{color:var(--red);cursor:pointer;font-weight:700}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);
+    color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:60}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .feedback{text-align:center;padding:18px 14px 2px}
+  .wa-btn{display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;text-decoration:none;
+    font-size:13px;font-weight:600;padding:10px 18px;border-radius:24px;box-shadow:0 4px 14px rgba(37,211,102,.35);transition:.15s}
+  .wa-btn:hover{background:#1fbe59;transform:translateY(-1px);box-shadow:0 6px 18px rgba(37,211,102,.45)}
+  .wa-btn svg{flex:none}
+  .foot{text-align:center;color:var(--muted);font-size:11.5px;padding:14px}
+  .cost-hint{font-size:11px;color:var(--muted);margin:-4px 0 10px 128px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hgroup">
+      <button class="hbtn" id="saveTop" title="Save this calculation">💾</button>
+      <button class="hbtn" id="listTop" title="Show saved SKUs">📋</button>
+    </div>
+    <h1>Shopee Profit Calculator</h1>
+    <button class="hbtn" id="gear" title="Settings">⚙️</button>
+  </header>
+
+  <div class="app">
+    <div class="grid">
+      <!-- LEFT: order / income inputs -->
+      <div class="col left">
+        <div class="sec-title">Order &amp; Item</div>
+
+        <div class="row cat-row"><label>Cluster</label><div class="inp"><select id="cluster"></select></div></div>
+        <div class="row cat-row"><label>Category</label><div class="inp"><select id="category"></select></div></div>
+        <div class="row cat-row"><label>Sub Category</label><div class="inp"><select id="subcat"></select></div></div>
+
+        <div class="divider"></div>
+
+        <div class="row"><label>Product Price</label><div class="inp"><input type="number" id="price" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Seller Discount</label><div class="inp"><input type="number" id="sellerDisc" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Shopee Discount</label><div class="inp"><input type="number" id="shopeeDisc" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Shipping by Buyer</label><div class="inp"><input type="number" id="shipBuyer" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Actual Ship. Fee</label><div class="inp"><input type="number" id="actualShip" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Rebate Ship. Fee</label><div class="inp"><input type="number" id="rebateShip" step="0.01" placeholder="0.00"></div></div>
+
+        <div class="divider"></div>
+        <div class="sec-title alt">Your Costs (for Net Profit)</div>
+        <div class="row"><label>Product Cost</label><div class="inp"><input type="number" id="cogs" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Shipping Cost</label><div class="inp"><input type="number" id="shipCost" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Advertisement</label><div class="inp"><input type="number" id="adCost" step="0.01" placeholder="0.00"></div></div>
+        <div class="row"><label>Other Cost</label><div class="inp"><input type="number" id="otherCost" step="0.01" placeholder="0.00"></div></div>
+        <div class="cost-hint">These are deducted from Order Income to get your real Net Profit.</div>
+      </div>
+
+      <!-- RIGHT: fees -->
+      <div class="col right">
+        <div class="row fee-head">
+          <label class="fh-title">Service Fee Breakdown</label>
+          <span class="fh-col fh-pct">%</span>
+          <span class="fh-col fh-rm">RM</span>
+        </div>
+        <div class="fee-row on" style="border-left-color:var(--blue)">
+          <div class="row"><label class="svc-indent">Commission Fee</label><div class="inp">
+            <input type="number" class="pct" id="commPct" step="0.01" placeholder="0.00%">
+            <input type="text" class="amt" id="commRM" readonly></div></div>
+        </div>
+        <div class="fee-row on" style="border-left-color:var(--blue)">
+          <div class="row"><label class="svc-indent">Transaction Fee</label><div class="inp">
+            <input type="number" class="pct" id="txnPct" step="0.01" value="3.50">
+            <input type="text" class="amt" id="txnRM" readonly></div></div>
+          <div class="hint" id="txnHint" style="margin-right:2px;color:var(--blue)"></div>
+        </div>
+
+        <div class="dashed"></div>
+
+        <div class="fee-row" id="fr_cash">
+          <div class="row"><div class="chk"><input type="checkbox" id="cashOn" checked></div>
+            <label>Cashback Program</label><div class="inp">
+            <input type="number" class="pct" id="cashPct" step="0.01" value="5.94">
+            <input type="text" class="amt" id="cashRM" readonly></div></div>
+        </div>
+        <div class="fee-row" id="fr_live">
+          <div class="row"><div class="chk"><input type="checkbox" id="liveOn"></div>
+            <label>Shopee Live Xtra</label><div class="inp">
+            <input type="number" class="pct" id="livePct" step="0.01" value="3.24">
+            <input type="text" class="amt" id="liveRM" readonly></div></div>
+        </div>
+        <div class="fee-row" id="fr_ads">
+          <div class="row"><div class="chk"><input type="checkbox" id="adsOn"></div>
+            <label>Ads Escrow Top Up</label><div class="inp">
+            <input type="number" class="pct" id="adsPct" step="0.01" value="5.40">
+            <input type="text" class="amt" id="adsRM" readonly></div></div>
+        </div>
+        <div class="fee-row" id="fr_plat">
+          <div class="row"><div class="chk"><input type="checkbox" id="platOn" checked></div>
+            <label>Platform Support Fee</label><div class="inp">
+            <input type="number" class="amt" id="platRM" step="0.01" value="0.54" style="max-width:none">
+            </div></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="tot rate"><span class="lbl">Total Fee Rate</span>
+          <span class="val"><span class="rate-pct" id="totRate">0.00%</span><span id="totFeeRM">0.00</span></span></div>
+
+        <div class="dashed"></div>
+        <div class="fee-row" id="fr_ams">
+          <div class="row"><label>AMS (Ads)</label><div class="inp">
+            <input type="number" class="pct" id="amsPct" step="0.01" placeholder="0.00">
+            <input type="text" class="amt" id="amsRM" readonly></div></div>
+        </div>
+        <div class="fee-row" id="fr_saver">
+          <div class="row"><div class="chk"><input type="checkbox" id="saverOn"></div>
+            <label>Ship. Fee Saver</label><div class="inp">
+            <input type="text" class="amt" id="saverRM" readonly style="max-width:none"></div></div>
+          <div class="hint" style="margin-right:2px">Fixed RM0.18 (Preferred Seller) or RM0.28.</div>
+        </div>
+        <div class="row"><label>Adjustment</label><div class="inp">
+          <input type="number" id="adjust" step="0.01" placeholder="0.00" style="max-width:none"></div></div>
+        <div class="hint" style="margin-right:2px">+ adds to income, − deducts.</div>
+
+        <div class="dashed"></div>
+        <div class="tot other"><span class="lbl">Total Other</span><span class="val" id="totOther">0.00</span></div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="result">
+      <div class="line income"><div class="k">Order Income <small>Shopee payout to you</small></div><div class="v" id="income">RM 0.00</div></div>
+      <div class="line margin-line"><div class="mv">Margin: <span id="orderMargin">–</span></div></div>
+      <div class="sub">
+        <div class="line profit pos" id="profitLine"><div class="k">Net Profit <small>after your product &amp; other costs</small></div><div class="v" id="netProfit">RM 0.00</div></div>
+        <div class="badges">
+          <div class="badge" id="bMargin"><div class="bt">Net Margin</div><div class="bv" id="netMargin">–</div></div>
+          <div class="badge" id="bRoi"><div class="bt">ROI</div><div class="bv" id="roi">–</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <input type="text" id="sku" placeholder="SKU No. / label">
+      <button class="btn p" id="saveBtn">Save</button>
+      <button class="btn g" id="resetBtn">Reset</button>
+      <button class="btn g" id="clearBtn">Clear All</button>
+      <div class="spacer"></div>
+      <button class="btn o" id="exportBtn">Export CSV</button>
+      <button class="btn o" id="printBtn">Print / PDF</button>
+    </div>
+
+    <div class="saved" id="savedBox">
+      <h3><span>Saved Calculations</span><span class="del" id="clearSaved" title="Delete all">clear all ✕</span></h3>
+      <table><thead><tr><th>SKU</th><th>Price</th><th>Order Income</th><th>Net Profit</th><th></th></tr></thead>
+      <tbody id="savedRows"></tbody></table>
+    </div>
+  </div>
+  <div class="feedback">
+    <a class="wa-btn" href="https://wa.me/60166663052?text=Hi%2C%20I%20have%20feedback%20on%20the%20Shopee%20Profit%20Calculator%3A%20" target="_blank" rel="noopener" title="Send feedback on WhatsApp">
+      <svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M16 3C9.4 3 4 8.4 4 15c0 2.1.6 4.2 1.6 6L4 29l8.2-1.6c1.7.9 3.7 1.4 5.8 1.4h.1c6.6 0 12-5.4 12-12S22.6 3 16 3zm0 21.8c-1.8 0-3.6-.5-5.1-1.4l-.4-.2-4.9 1 1-4.7-.2-.4c-1-1.6-1.5-3.4-1.5-5.3C4.4 9.6 9.6 4.4 16 4.4S27.6 9.6 27.6 15 22.4 24.8 16 24.8zm6.6-8.1c-.4-.2-2.1-1-2.4-1.1-.3-.1-.6-.2-.8.2-.2.4-.9 1.1-1.1 1.3-.2.2-.4.2-.8.1-.4-.2-1.5-.6-2.9-1.8-1.1-1-1.8-2.2-2-2.5-.2-.4 0-.6.2-.8.2-.2.4-.4.5-.7.2-.2.2-.4.4-.7.1-.3 0-.5 0-.7-.1-.2-.8-2-1.1-2.7-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.6.1-.9.5-.3.4-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.9 5.2.8.4 1.5.6 2 .8.8.3 1.6.2 2.2.1.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.2-.7-.4z"/></svg>
+      <span>Send feedback via WhatsApp</span>
+    </a>
+  </div>
+  <div class="foot">Order Income = (Price − Seller Disc − Shopee Disc) + Shipping by Buyer − Actual Ship + Rebate − Fees − Other &nbsp;•&nbsp; Net Profit = Order Income − your costs. Rates are yours to edit. Not affiliated with Shopee.</div>
+</div>
+
+<!-- Settings drawer -->
+<div class="drawer-bg" id="drawerBg"></div>
+<div class="drawer" id="drawer">
+  <button class="close-x" id="closeDrawer">✕</button>
+  <h2>Settings</h2>
+  <p class="d">Preferences apply instantly to the calculation.</p>
+  <div class="opt"><input type="checkbox" id="sstOn" checked>
+    <div><div class="ot">Auto-apply 8% SST (Transaction Fee only)</div><div class="od">Applies 8% SST to the Transaction Fee rate only — and only when the rate you type is a clean value divisible by 0.5 (e.g. 3.50% → 3.78%). Commission, Cashback and other rates are used exactly as entered (they already include SST). AMS is never affected. This mirrors Shopee Calculator Lite.</div></div></div>
+  <div class="opt"><input type="checkbox" id="prefSeller">
+    <div><div class="ot">Preferred / Star Seller</div><div class="od">Adds the free-shipping handling fee at the lower RM0.18 rate instead of RM0.28, added into Total Other.</div></div></div>
+  <div class="opt"><input type="checkbox" id="prefSettings" checked>
+    <div><div class="ot">Preserve settings on Reset</div><div class="od">Keeps category, fee %s and options when you press Reset — only clears the amounts.</div></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ===== Shopee MY commission table (from reference data.js, "After 21 May 2026") ===== */
+const csvRawData = `Cluster,Category,Sub-category,Level 4,With CCB,No CCB
+Food & Beverages,Bakery,Cakes & Pies,,4.00%,9.00%
+Food & Beverages,Bakery,Pastry,,4.00%,9.00%
+Food & Beverages,Bakery,Others,,4.00%,9.00%
+Food & Beverages,Bakery,Breads,,0.00%,0.00%
+Food & Beverages,Baking Needs,Baking Powder & Soda,,3.00%,8.00%
+Food & Beverages,Baking Needs,Baking Premix Flour,,3.00%,8.00%
+Food & Beverages,Baking Needs,Food Coloring,,3.00%,8.00%
+Food & Beverages,Baking Needs,Baking Flavoring,,3.00%,8.00%
+Food & Beverages,Baking Needs,Baking Decoration,,3.00%,8.00%
+Food & Beverages,Baking Needs,Others,,3.00%,8.00%
+Food & Beverages,Baking Needs,Flour,,0.00%,0.00%
+Food & Beverages,Cooking Essentials,Sweetener,,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Flavour Enhancers,,9.00%,14.00%
+Food & Beverages,Cooking Essentials,"Stock, Gravy & Instant Soup",,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Pepper,0.00%,0.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Salt,0.00%,0.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Herbs & Spices,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Sauce,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Dressing,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Chilli & Sambal,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Vinegar,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Cooking Wine,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Seasonings & Condiments,Others,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Others,,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Cooking Paste & Kit,,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Flour Coating,,9.00%,14.00%
+Food & Beverages,Cooking Essentials,Sugar,,0.00%,0.00%
+Food & Beverages,Cooking Essentials,Oil,,0.00%,0.00%
+Food & Beverages,Food Staples,Dried Goods,Beans & Grains,0.00%,0.00%
+Food & Beverages,Food Staples,Dried Goods,Dried Seafood,3.00%,8.00%
+Food & Beverages,Food Staples,Dried Goods,Traditional Herbs,3.00%,8.00%
+Food & Beverages,Food Staples,Dried Goods,Others,3.00%,8.00%
+Food & Beverages,Food Staples,Canned Food,Canned Fruits,3.00%,8.00%
+Food & Beverages,Food Staples,Canned Food,Canned Meat,3.00%,8.00%
+Food & Beverages,Food Staples,Canned Food,Canned Seafood,3.00%,8.00%
+Food & Beverages,Food Staples,Canned Food,Canned Vegetables,3.00%,8.00%
+Food & Beverages,Food Staples,Canned Food,Canned Soup,3.00%,8.00%
+Food & Beverages,Food Staples,Canned Food,Others,3.00%,8.00%
+Food & Beverages,Food Staples,Noodles,,0.00%,0.00%
+Food & Beverages,Food Staples,Pasta,,3.00%,8.00%
+Food & Beverages,Food Staples,Preserved Vegetables,,3.00%,8.00%
+Food & Beverages,Food Staples,Others,,3.00%,8.00%
+Food & Beverages,Food Staples,Rice,,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Garlic Ginger & Onion,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Cabbage & Brussel Sprouts,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Fresh Herbs,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Leafy Vegetables,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Brinjals Gourds & Squashes,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Broccoli & Cauliflowers,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Chilli & Capsicum,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Peas Beans Nuts & Corn,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Root & Stem Vegetables,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Sprouts,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Salads Vegetables,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Pre-cut & Assorted Vegetable Set,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetables,Others,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Meat,Poultry,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Meat,Beef,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Meat,Pork,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Meat,Lamb,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Meat,Others,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Seafood,Fish,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Seafood,Prawn,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Seafood,Crab,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Seafood,Others,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Apples & Pears,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Bananas,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Berries,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Citrus,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Grapes,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Melons,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Stonefruits,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Tropical & Exotic Fruits,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Pre-cut & Assorted Fruit Set,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Fruits,Others,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Mushroom,,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Frozen Processed Food,,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Vegetarian Meat,,0.00%,0.00%
+Food & Beverages,Fresh & Frozen Food,Processed Meat & Seafood,,3.00%,8.00%
+Food & Beverages,Fresh & Frozen Food,Others,,3.00%,8.00%
+Food & Beverages,Alcoholic Beverages,Beer & Cider,,9.00%,14.00%
+Food & Beverages,Alcoholic Beverages,Wine & Champagne,,9.00%,14.00%
+Food & Beverages,Alcoholic Beverages,Liqour & Spirits,,9.00%,14.00%
+Food & Beverages,Alcoholic Beverages,"Sake, Soju & Umeshu",,9.00%,14.00%
+Food & Beverages,Alcoholic Beverages,Others,,9.00%,14.00%
+Food & Beverages,Beverages,Coffee,,11.00%,16.00%
+Food & Beverages,Beverages,Tea & Tea Bags,,11.00%,16.00%
+Food & Beverages,Beverages,Chocolate Drinks,,11.00%,16.00%
+Food & Beverages,Beverages,Energy & Isotonic Drinks,,11.00%,16.00%
+Food & Beverages,Beverages,Water,,11.00%,16.00%
+Food & Beverages,Beverages,Juice & Juice Vinegar,,11.00%,16.00%
+Food & Beverages,Beverages,Cordial & Syrups,,11.00%,16.00%
+Food & Beverages,Beverages,Carbonated Drinks & Tonics,,11.00%,16.00%
+Food & Beverages,Beverages,Powdered Drink Mixes,,11.00%,16.00%
+Food & Beverages,Beverages,Dessert Drink,,11.00%,16.00%
+Food & Beverages,Beverages,Traditional & Herbal Drinks,,11.00%,16.00%
+Food & Beverages,Beverages,Drink Toppings,,11.00%,16.00%
+Food & Beverages,Beverages,Non-dairy Milk,,11.00%,16.00%
+Food & Beverages,Beverages,Others,,11.00%,16.00%
+Food & Beverages,Breakfast Cereals & Spread,Honey & Maple Syrups,,11.00%,16.00%
+Food & Beverages,Breakfast Cereals & Spread,Jam & Spread,,11.00%,16.00%
+Food & Beverages,Breakfast Cereals & Spread,"Cereal, Granola & Oats",,11.00%,16.00%
+Food & Beverages,Breakfast Cereals & Spread,Breakfast Bar,,11.00%,16.00%
+Food & Beverages,Breakfast Cereals & Spread,Others,,11.00%,16.00%
+Food & Beverages,Convenience / Ready-to-eat,Cooked Food,,11.00%,16.00%
+Food & Beverages,Convenience / Ready-to-eat,Others,,11.00%,16.00%
+Food & Beverages,Convenience / Ready-to-eat,Instant Rice & Porridge,,11.00%,16.00%
+Food & Beverages,Convenience / Ready-to-eat,Instant Hotpot,,11.00%,16.00%
+Food & Beverages,Convenience / Ready-to-eat,Instant Noodles,,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Milk,Fresh Milk,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Milk,UHT Milk,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Milk,Condensed & Evaporated Milk,0.00%,0.00%
+Food & Beverages,Dairy & Eggs,Milk,Powdered Milk,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Milk,Others,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Yogurt & Cultured Milk,,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Creamers,,9.00%,14.00%
+Food & Beverages,Dairy & Eggs,Butter & Margarine,,9.00%,14.00%
+Food & Beverages,Dairy & Eggs,Cheese & Cheese Powder,,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Ice cream,,11.00%,16.00%
+Food & Beverages,Dairy & Eggs,Eggs,,0.00%,0.00%
+Food & Beverages,Dairy & Eggs,Beancurd,,9.00%,14.00%
+Food & Beverages,Dairy & Eggs,Others,,9.00%,14.00%
+Food & Beverages,Gift Set & Hampers,,,10.00%,15.00%
+Food & Beverages,Snacks,Sweets & Candy,,10.00%,15.00%
+Food & Beverages,Snacks,Chocolate,,10.00%,15.00%
+Food & Beverages,Snacks,"Biscuits, Cookies & Wafers",,10.00%,15.00%
+Food & Beverages,Snacks,Chips & Crisps,,10.00%,15.00%
+Food & Beverages,Snacks,Seeds,,10.00%,15.00%
+Food & Beverages,Snacks,Popcorn,,10.00%,15.00%
+Food & Beverages,Snacks,Seaweed,,10.00%,15.00%
+Food & Beverages,Snacks,Nuts,,10.00%,15.00%
+Food & Beverages,Snacks,Others,,10.00%,15.00%
+Food & Beverages,Snacks,"Pudding, Jellies & Marshmallow",,10.00%,15.00%
+Food & Beverages,Snacks,Dried Snacks,Meat Jerky and Bakkwa,10.00%,15.00%
+Food & Beverages,Snacks,Dried Snacks,Dried Fruits,10.00%,15.00%
+Food & Beverages,Snacks,Dried Snacks,Meat Floss,10.00%,15.00%
+Food & Beverages,Snacks,Dried Snacks,Dried Seafood Snacks,10.00%,15.00%
+Food & Beverages,Snacks,Dried Snacks,Others,10.00%,15.00%
+Food & Beverages,Others,,,10.00%,15.00%
+Electronics,Audio,Amplifiers & Mixers,,7.50%,12.50%
+Electronics,Audio,Earphones Headphones & Headsets,,7.50%,12.50%
+Electronics,Audio,Home Audio & Speakers,,7.50%,12.50%
+Electronics,Audio,Media Players,,7.50%,12.50%
+Electronics,Audio,Microphones,,7.50%,12.50%
+Electronics,Audio,Audio & Video Cables & Converters,,10.00%,15.00%
+Electronics,Audio,Others,,10.00%,15.00%
+Electronics,Cameras & Drones,Cameras,,6.00%,11.00%
+Electronics,Cameras & Drones,Drones,,6.00%,11.00%
+Electronics,Cameras & Drones,Lenses,,6.00%,11.00%
+Electronics,Cameras & Drones,Security Cameras & Systems,,7.00%,12.00%
+Electronics,Cameras & Drones,Camera Accessories,,10.00%,15.00%
+Electronics,Cameras & Drones,Camera Care,,10.00%,15.00%
+Electronics,Cameras & Drones,Drone Accessories,,10.00%,15.00%
+Electronics,Cameras & Drones,Lens Accessories,,10.00%,15.00%
+Electronics,Cameras & Drones,Others,,11.00%,16.00%
+Electronics,Computers & Accessories,Laptops,,6.50%,11.50%
+Electronics,Computers & Accessories,Data Storage,,6.50%,11.50%
+Electronics,Computers & Accessories,Desktop & Laptop Components,,6.50%,11.50%
+Electronics,Computers & Accessories,Desktop Computers,,6.50%,11.50%
+Electronics,Computers & Accessories,Monitors,,8.00%,13.00%
+Electronics,Computers & Accessories,Network Components,,6.50%,11.50%
+Electronics,Computers & Accessories,Printers & Scanners,,8.00%,13.00%
+Electronics,Computers & Accessories,Keyboards & Mice,,8.00%,13.00%
+Electronics,Computers & Accessories,Peripherals & Accessories,,10.00%,15.00%
+Electronics,Computers & Accessories,Office Equipment,,10.00%,15.00%
+Electronics,Computers & Accessories,Others,,11.00%,16.00%
+Electronics,Gaming & Consoles,Console Machines,,7.00%,12.00%
+Electronics,Gaming & Consoles,Video Games,,7.00%,12.00%
+Electronics,Gaming & Consoles,Console Accessories,,9.00%,14.00%
+Electronics,Gaming & Consoles,Others,,11.00%,16.00%
+Electronics,Home Appliances,Large Household Appliances,,8.00%,13.00%
+Electronics,Home Appliances,Small Household Appliances,,8.00%,13.00%
+Electronics,Home Appliances,Kitchen Appliances,,8.00%,13.00%
+Electronics,Home Appliances,TVs & Accessories,,8.00%,13.00%
+Electronics,Home Appliances,Projectors & Accessories,,9.50%,14.50%
+Electronics,Home Appliances,Electrical Circuitry & Parts,,9.50%,14.50%
+Electronics,Home Appliances,Remote Controls,,9.50%,14.50%
+Electronics,Home Appliances,Batteries,,9.50%,14.50%
+Electronics,Home Appliances,E-Cigarettes,,11.00%,16.00%
+Electronics,Home Appliances,Others,,11.00%,16.00%
+Electronics,Mobile & Gadgets,Mobile Phones,,6.00%,11.00%
+Electronics,Mobile & Gadgets,Tablets,,6.00%,11.00%
+Electronics,Mobile & Gadgets,Wearable Devices,,6.00%,11.00%
+Electronics,Mobile & Gadgets,Walkie Talkies,,9.00%,14.00%
+Electronics,Mobile & Gadgets,Accessories,,9.00%,14.00%
+Electronics,Mobile & Gadgets,Sim Cards,,9.00%,14.00%
+Electronics,Mobile & Gadgets,Others,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Baby & Kids Accessories,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Baby Clothes,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Baby Mittens & Footwear,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Boy Clothes,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Boy Shoes,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Girl Clothes,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Girl Shoes,,10.00%,15.00%
+Fashion,Baby & Kids Fashion,Others,,10.00%,15.00%
+Fashion,Fashion Accessories,Accessories Sets & Packages,,10.00%,15.00%
+Fashion,Fashion Accessories,Fine Jewelry,,10.00%,15.00%
+Fashion,Fashion Accessories,Additional Accessories,,10.00%,15.00%
+Fashion,Fashion Accessories,Gloves,,10.00%,15.00%
+Fashion,Fashion Accessories,Belts,,10.00%,15.00%
+Fashion,Fashion Accessories,Hats & Caps,,10.00%,15.00%
+Fashion,Fashion Accessories,Eyewear,,10.00%,15.00%
+Fashion,Fashion Accessories,Hair Accessories,,10.00%,15.00%
+Fashion,Fashion Accessories,Neckties Bow Ties & Cravats,,10.00%,15.00%
+Fashion,Fashion Accessories,Scarves & Shawls,,10.00%,15.00%
+Fashion,Fashion Accessories,Rings,,10.00%,15.00%
+Fashion,Fashion Accessories,Earrings,,10.00%,15.00%
+Fashion,Fashion Accessories,Bracelets & Bangles,,10.00%,15.00%
+Fashion,Fashion Accessories,Anklets,,10.00%,15.00%
+Fashion,Fashion Accessories,Necklaces,,10.00%,15.00%
+Fashion,Fashion Accessories,Others,,10.00%,15.00%
+Fashion,Fashion Accessories,Investment Precious Metals,,12.00%,17.00%
+Fashion,Men Clothes,Costumes,,9.00%,14.00%
+Fashion,Men Clothes,Hoodies & Sweatshirts,,9.00%,14.00%
+Fashion,Men Clothes,Innerwear & Underwear,,9.00%,14.00%
+Fashion,Men Clothes,"Jackets, Coats & Vests",,9.00%,14.00%
+Fashion,Men Clothes,Jeans,,9.00%,14.00%
+Fashion,Men Clothes,Occupational Attire,,9.00%,14.00%
+Fashion,Men Clothes,Others,,9.00%,14.00%
+Fashion,Men Clothes,Pants,,9.00%,14.00%
+Fashion,Men Clothes,Sets,,9.00%,14.00%
+Fashion,Men Clothes,Shorts,,9.00%,14.00%
+Fashion,Men Clothes,Sleepwear,,9.00%,14.00%
+Fashion,Men Clothes,Socks,,9.00%,14.00%
+Fashion,Men Clothes,Suits,,9.00%,14.00%
+Fashion,Men Clothes,Sweaters & Cardigans,,9.00%,14.00%
+Fashion,Men Clothes,Tops,,9.00%,14.00%
+Fashion,Men Clothes,Traditional Wear,,9.00%,14.00%
+Fashion,Muslim Fashion,Kid Muslim Wear,,9.00%,14.00%
+Fashion,Muslim Fashion,Men Muslim Wear,,9.00%,14.00%
+Fashion,Muslim Fashion,Others,,9.00%,14.00%
+Fashion,Muslim Fashion,Prayer Attire & Equipment,,9.00%,14.00%
+Fashion,Muslim Fashion,Women Muslim Wear,,9.00%,14.00%
+Fashion,Women Clothes,Costumes,,9.00%,14.00%
+Fashion,Women Clothes,Dresses,,9.00%,14.00%
+Fashion,Women Clothes,Fabric,,9.00%,14.00%
+Fashion,Women Clothes,Hoodies & Sweatshirts,,9.00%,14.00%
+Fashion,Women Clothes,"Jackets, Coats & Vests",,9.00%,14.00%
+Fashion,Women Clothes,Jeans,,9.00%,14.00%
+Fashion,Women Clothes,"Jumpsuits, Playsuits & Overalls",,9.00%,14.00%
+Fashion,Women Clothes,Lingerie & Underwear,,9.00%,14.00%
+Fashion,Women Clothes,Maternity Wear,,9.00%,14.00%
+Fashion,Women Clothes,Others,,9.00%,14.00%
+Fashion,Women Clothes,Pants & Leggings,,9.00%,14.00%
+Fashion,Women Clothes,Sets,,9.00%,14.00%
+Fashion,Women Clothes,Shorts,,9.00%,14.00%
+Fashion,Women Clothes,Skirts,,9.00%,14.00%
+Fashion,Women Clothes,Sleepwear & Pajamas,,9.00%,14.00%
+Fashion,Women Clothes,Socks & Stockings,,9.00%,14.00%
+Fashion,Women Clothes,Sweaters & Cardigans,,9.00%,14.00%
+Fashion,Women Clothes,Tops,,9.00%,14.00%
+Fashion,Women Clothes,Traditional Wear,,9.00%,14.00%
+Fashion,Women Clothes,Wedding Dresses,,9.00%,14.00%
+Fashion,Men Bags,Back packs,,9.50%,14.50%
+Fashion,Men Bags,Briefcases,,9.50%,14.50%
+Fashion,Men Bags,Clutches,,9.50%,14.50%
+Fashion,Men Bags,Crossbody & Shoulder Bags,,9.50%,14.50%
+Fashion,Men Bags,Laptop Bags,,9.50%,14.50%
+Fashion,Men Bags,Others,,9.50%,14.50%
+Fashion,Men Bags,Tote Bags,,9.50%,14.50%
+Fashion,Men Bags,Waist Bags & Chest Bags,,9.50%,14.50%
+Fashion,Men Bags,Wallets,,9.50%,14.50%
+Fashion,Women Bags,Backpacks,,9.50%,14.50%
+Fashion,Women Bags,Bag Accessories,,9.50%,14.50%
+Fashion,Women Bags,Clutches & Wristlets,,9.50%,14.50%
+Fashion,Women Bags,Crossbody & Shoulder Bags,,9.50%,14.50%
+Fashion,Women Bags,Laptop Bags,,9.50%,14.50%
+Fashion,Women Bags,Others,,9.50%,14.50%
+Fashion,Women Bags,Top-handle Bags,,9.50%,14.50%
+Fashion,Women Bags,Tote Bags,,9.50%,14.50%
+Fashion,Women Bags,Waist Bags & Chest Bags,,9.50%,14.50%
+Fashion,Women Bags,Wallets,,9.50%,14.50%
+Fashion,Men Shoes,Boots,,10.00%,15.00%
+Fashion,Men Shoes,Loafers & Boat Shoes,,10.00%,15.00%
+Fashion,Men Shoes,Others,,10.00%,15.00%
+Fashion,Men Shoes,Oxfords & Lace-Ups,,10.00%,15.00%
+Fashion,Men Shoes,Sandals & Flip Flops,,10.00%,15.00%
+Fashion,Men Shoes,Shoe Care & Accessories,,10.00%,15.00%
+Fashion,Men Shoes,Slip Ons & Mules,,10.00%,15.00%
+Fashion,Men Shoes,Sneakers,,10.00%,15.00%
+Fashion,Travel & Luggage,Luggage,,9.00%,14.00%
+Fashion,Travel & Luggage,Others,,9.00%,14.00%
+Fashion,Travel & Luggage,Travel Accessories,,9.00%,14.00%
+Fashion,Travel & Luggage,Travel Bags,,9.00%,14.00%
+Fashion,Watches,Men Watches,,10.00%,15.00%
+Fashion,Watches,Others,,10.00%,15.00%
+Fashion,Watches,Set & Couple Watches,,10.00%,15.00%
+Fashion,Watches,Watches Accessories,,10.00%,15.00%
+Fashion,Watches,Women Watches,,10.00%,15.00%
+Fashion,Women Shoes,Boots,,10.00%,15.00%
+Fashion,Women Shoes,Flat Sandals & Flip Flops,,10.00%,15.00%
+Fashion,Women Shoes,Flats,,10.00%,15.00%
+Fashion,Women Shoes,Heels,,10.00%,15.00%
+Fashion,Women Shoes,Others,,10.00%,15.00%
+Fashion,Women Shoes,Shoe Care & Accessories,,10.00%,15.00%
+Fashion,Women Shoes,Sneakers,,10.00%,15.00%
+Fashion,Women Shoes,Wedges,,10.00%,15.00%
+FMCG,Beauty,Bath & Body Care,,12.00%,17.00%
+FMCG,Beauty,Hair Care,,12.00%,17.00%
+FMCG,Beauty,Skincare,,12.00%,17.00%
+FMCG,Beauty,Beauty Sets & Packages,,12.00%,17.00%
+FMCG,Beauty,Beauty Tools,,12.00%,17.00%
+FMCG,Beauty,Hand Foot & Nail Care,,12.00%,17.00%
+FMCG,Beauty,Makeup,,12.00%,17.00%
+FMCG,Beauty,Men's Care,,12.00%,17.00%
+FMCG,Beauty,Perfumes & Fragrances,,12.00%,17.00%
+FMCG,Beauty,Others,,12.00%,17.00%
+FMCG,Health,Personal Care,,12.00%,17.00%
+FMCG,Health,Personal Care,Manual Toothbrushes,10.00%,15.00%
+FMCG,Health,Personal Care,Toothpastes,10.00%,15.00%
+FMCG,Health,Personal Care,Sanitary Napkins & Panty Liners,10.00%,15.00%
+FMCG,Health,Food Supplement,,12.00%,17.00%
+FMCG,Health,Medical Supplies,,12.00%,17.00%
+FMCG,Health,Medical Supplies,Over-the-counter Medicine,10.00%,15.00%
+FMCG,Health,Medical Supplies,First Aid Supplies (excluding Ointments & Creams),10.00%,15.00%
+FMCG,Health,Medical Supplies,Pain Relievers,10.00%,15.00%
+FMCG,Health,Others,,12.00%,17.00%
+FMCG,Health,Sexual Wellness,,12.00%,17.00%
+FMCG,Mom & Baby,Feeding Essentials,,8.00%,13.00%
+FMCG,Mom & Baby,Feeding Essentials,Bottles & Bottle Accessories,6.00%,11.00%
+FMCG,Mom & Baby,Feeding Essentials,Bottle Cleansing,6.00%,11.00%
+FMCG,Mom & Baby,Feeding Essentials,Breast Pump & Accessories,6.00%,11.00%
+FMCG,Mom & Baby,Feeding Essentials,Breatmilk Storage Bags,6.00%,11.00%
+FMCG,Mom & Baby,Milk Formula & Baby Food,,8.00%,13.00%
+FMCG,Mom & Baby,Diapering & Potty,,8.00%,13.00%
+FMCG,Mom & Baby,Baby Healthcare,,9.50%,14.50%
+FMCG,Mom & Baby,Bath & Body Care,,10.00%,15.00%
+FMCG,Mom & Baby,Bath & Body Care,Hair Care & Body Wash,8.00%,13.00%
+FMCG,Mom & Baby,Bath & Body Care,Baby Laundry Detergent,8.00%,13.00%
+FMCG,Mom & Baby,Maternity Healthcare,,10.00%,15.00%
+FMCG,Mom & Baby,Maternity Accessories,,10.00%,15.00%
+FMCG,Mom & Baby,Nursery,,10.00%,15.00%
+FMCG,Mom & Baby,Baby Safety,,10.00%,15.00%
+FMCG,Mom & Baby,Baby Travel Essentials,,10.00%,15.00%
+FMCG,Mom & Baby,Toys,,10.00%,15.00%
+FMCG,Mom & Baby,Gift Sets & Packages,,10.00%,15.00%
+FMCG,Mom & Baby,Others,,10.00%,15.00%
+FMCG,Pets,Litter & Toilet,,10.00%,15.00%
+FMCG,Pets,Pet Accessories,,10.00%,15.00%
+FMCG,Pets,Pet Clothing & Accessories,,10.00%,15.00%
+FMCG,Pets,Pet Food,,10.00%,15.00%
+FMCG,Pets,Pet Grooming,,10.00%,15.00%
+FMCG,Pets,Pet Healthcare,,10.00%,15.00%
+FMCG,Pets,Others,,10.00%,15.00%
+Lifestyle,Automobiles,Automotive Oils & Lubes,,8.50%,13.50%
+Lifestyle,Automobiles,Automobiles,,8.50%,13.50%
+Lifestyle,Automobiles,Automobile Spare Parts,,8.50%,13.50%
+Lifestyle,Automobiles,Automobile Exterior Accessories,,9.50%,14.50%
+Lifestyle,Automobiles,Automobile Interior Accessories,,9.50%,14.50%
+Lifestyle,Automobiles,Automotive Care,,9.50%,14.50%
+Lifestyle,Automobiles,Automotive Keychains & Key Covers,,9.50%,14.50%
+Lifestyle,Automobiles,Automotive Tools,,9.50%,14.50%
+Lifestyle,Automobiles,Others,,9.50%,14.50%
+Lifestyle,Books & Magazines,Books,,9.50%,14.50%
+Lifestyle,Books & Magazines,E-Books,,9.50%,14.50%
+Lifestyle,Books & Magazines,Magazines & Newspaper,,9.50%,14.50%
+Lifestyle,Books & Magazines,Others,,10.00%,15.00%
+Lifestyle,Hobbies & Collections,Musical Instruments & Accessories,,10.00%,15.00%
+Lifestyle,Hobbies & Collections,CD DVD & Bluray,,11.00%,16.00%
+Lifestyle,Hobbies & Collections,Collectible Items,,11.00%,16.00%
+Lifestyle,Hobbies & Collections,Needlework,,11.00%,16.00%
+Lifestyle,Hobbies & Collections,Others,,11.00%,16.00%
+Lifestyle,Hobbies & Collections,Photo Albums,,11.00%,16.00%
+Lifestyle,Hobbies & Collections,Souvenirs,,11.00%,16.00%
+Lifestyle,Hobbies & Collections,Toys & Games,,11.00%,16.00%
+Lifestyle,Hobbies & Collections,Vinyl Records,,11.00%,16.00%
+Lifestyle,Home & Living,Safety & Security,,9.50%,14.50%
+Lifestyle,Home & Living,Bathrooms,,10.50%,15.50%
+Lifestyle,Home & Living,Bedding,,10.50%,15.50%
+Lifestyle,Home & Living,Decoration,,10.50%,15.50%
+Lifestyle,Home & Living,Dinnerware,,10.50%,15.50%
+Lifestyle,Home & Living,Fengshui & Religious Supplies,,10.50%,15.50%
+Lifestyle,Home & Living,Furniture,,11.50%,16.50%
+Lifestyle,Home & Living,Gardening,,10.50%,15.50%
+Lifestyle,Home & Living,Hand Warmers Hot Water Bags & Ice Bags,,10.50%,15.50%
+Lifestyle,Home & Living,Home Care Supplies,,10.50%,15.50%
+Lifestyle,Home & Living,Home Fragrance & Aromatherapy,,10.50%,15.50%
+Lifestyle,Home & Living,Home Organizers,,10.50%,15.50%
+Lifestyle,Home & Living,Kitchenware,,10.50%,15.50%
+Lifestyle,Home & Living,Lighting,,10.50%,15.50%
+Lifestyle,Home & Living,Others,,10.50%,15.50%
+Lifestyle,Home & Living,Party Supplies,,10.50%,15.50%
+Lifestyle,Home & Living,Tools & Home Improvement,,10.50%,15.50%
+Lifestyle,Motorcycles,Motorcycle Spare Parts,,8.50%,13.50%
+Lifestyle,Motorcycles,Motorcycles,,9.50%,14.50%
+Lifestyle,Motorcycles,Motorcycle Accessories,,9.50%,14.50%
+Lifestyle,Motorcycles,Motorcycle Helmets & Accessories,,9.50%,14.50%
+Lifestyle,Motorcycles,Others,,10.00%,15.00%
+Lifestyle,Spare Parts and Accessories for Vehicles,Spare Parts for Automobiles,,8.50%,13.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Spare Parts for Motorcycles,,8.50%,13.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Tires and Wheels,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Heavy Duty and Boats,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Vehicular Care,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Vehicular Safety,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Vehicular Tools,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Accessories for Motorcycles,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Internal Accessories for Automobiles,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,External Accessories for Automobiles,,9.50%,14.50%
+Lifestyle,Spare Parts and Accessories for Vehicles,Others,,10.00%,15.00%
+Lifestyle,Sports & Outdoors,Sports & Outdoor Accessories,,10.00%,15.00%
+Lifestyle,Sports & Outdoors,Sports & Outdoor Apparels,,10.00%,15.00%
+Lifestyle,Sports & Outdoors,Sports & Outdoor Recreation Equipments,,11.00%,16.00%
+Lifestyle,Sports & Outdoors,Sports Footwear,,10.00%,15.00%
+Lifestyle,Sports & Outdoors,Others,,10.00%,15.00%
+Lifestyle,Stationery,Art Supplies,,10.00%,15.00%
+Lifestyle,Stationery,Gift & Wrapping,,10.00%,15.00%
+Lifestyle,Stationery,Letters & Envelopes,,10.00%,15.00%
+Lifestyle,Stationery,Notebooks & Papers,,10.00%,15.00%
+Lifestyle,Stationery,Others,,10.00%,15.00%
+Lifestyle,Stationery,School & Office Equipment,,10.00%,15.00%
+Lifestyle,Stationery,Writing & Correction,,10.00%,15.00%
+Gaming & Consoles,Top-ups & Reloads,Others,,18.50%,23.50%
+Computer & Accessories,Components,Software,,18.50%,23.50%
+Mobile & Accessories,Mobile Reloads & Sim Card,Mobile Data,,18.50%,23.50%
+Mobile & Accessories,Mobile Reloads & Sim Card,Mobile Top-ups & Pre-paid,,18.50%,23.50%
+Tickets & Vouchers,Bill Payment & Top Ups,Utilities,,18.50%,23.50%
+Tickets & Vouchers,Event & Travel Vouchers,Others,,18.50%,23.50%
+Tickets & Vouchers,Event & Travel Vouchers,Local Attractions,,18.50%,23.50%
+Tickets & Vouchers,Event & Travel Vouchers,Event Tickets,,18.50%,23.50%
+Tickets & Vouchers,Event & Travel Vouchers,Overseas Attractions,,18.50%,23.50%
+Tickets & Vouchers,F&B Vouchers,F&B Vouchers,,18.50%,23.50%
+Tickets & Vouchers,F&B Vouchers,Others,,18.50%,23.50%
+Tickets & Vouchers,Retail Vouchers,Shopping Vouchers,,18.50%,23.50%
+Tickets & Vouchers,Retail Vouchers,Others,,18.50%,23.50%
+Tickets & Vouchers,Services,Others,,18.50%,23.50%
+Tickets & Vouchers,Services,Housekeeping,,18.50%,23.50%
+Tickets & Vouchers,Services,Air-con services,,18.50%,23.50%
+Tickets & Vouchers,Shopee Official,Others,,18.50%,23.50%
+Tickets & Vouchers,Spa & Beauty Vouchers,Others,,18.50%,23.50%
+Tickets & Vouchers,Spa & Beauty Vouchers,Spa & Beauty Vouchers,,18.50%,23.50%
+Tickets & Vouchers,Others,Others,,18.50%,23.50%`;
+function parseCSV(csv){
+  const lines=csv.split(/\r?\n/); const result=[];
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i].trim(); if(!line)continue;
+    let row=[],cur='',inQ=false;
+    for(let j=0;j<line.length;j++){const c=line[j];
+      if(c==='"')inQ=!inQ; else if(c===','&&!inQ){row.push(cur.trim());cur='';} else cur+=c;}
+    row.push(cur.trim());
+    if(row.length<6)continue;
+    const cluster=row[0],category=row[1];
+    let subCategory=row[2].replace(/^"|"$/g,'');
+    const level4=row[3].replace(/^"|"$/g,'');
+    if(level4) subCategory+=` - ${level4}`;
+    const rateCCB=parseFloat(row[4].replace('%',''))||0;
+    const rateNoCCB=parseFloat(row[5].replace('%',''))||0;
+    result.push({cluster,category,subCategory,rateCCB,rateNoCCB});
+  }
+  return result;
+}
+const feeData=parseCSV(csvRawData);
+
+const $=id=>document.getElementById(id);
+const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
+const money=n=>(n<0?'-RM ':'RM ')+Math.abs(n).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+const f2=n=>n.toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=n=>(isFinite(n)?n.toFixed(2):'0.00')+'%';
+
+const FIELDS=['cluster','category','subcat','price','sellerDisc','shopeeDisc','shipBuyer','actualShip','rebateShip',
+  'cogs','shipCost','adCost','otherCost','commPct','txnPct','cashPct','livePct','adsPct','platRM','amsPct','adjust','sku'];
+const CHECKS=['cashOn','liveOn','adsOn','platOn','saverOn','sstOn','prefSeller','prefSettings'];
+
+const round2=n=>parseFloat(n.toFixed(2));       // reference rounds each fee to 2dp before summing
+// SST applies to the Transaction Fee only, and only to a clean rate divisible by 0.5 (mirrors reference)
+function txnRate(){
+  const raw=num('txnPct');
+  if($('sstOn').checked && raw!==0 && Number.isInteger(raw*2)) return raw*1.08;
+  return raw;
+}
+// Commission rate: manual value if typed, else the auto (SST-inclusive) placeholder from the category
+function commRate(){
+  const el=$('commPct');
+  const v=parseFloat(el.value);
+  if(!isNaN(v)) return v;
+  const p=parseFloat((el.placeholder||'').replace('%',''));
+  return isNaN(p)?0:p;
+}
+
+/* ===== Category dropdowns driven by the commission table ===== */
+const distinct=a=>[...new Set(a)];
+const PH='__select__';                            // sentinel value for the "Select …" prompt option
+function fillSelect(sel,items,keep,prompt){
+  let html='';
+  if(prompt!==undefined) html+=`<option value="${PH}">${prompt}</option>`;
+  html+=items.map(v=>`<option value="${v.replace(/"/g,'&quot;')}">${v||'— whole category —'}</option>`).join('');
+  sel.innerHTML=html;
+  if(keep!==undefined && keep!==PH && items.includes(keep)) sel.value=keep;
+  else if(prompt!==undefined) sel.value=PH;       // default to the prompt when nothing valid to keep
+}
+function fillClusters(keep){ fillSelect($('cluster'),distinct(feeData.map(d=>d.cluster)),keep,'Select Cluster'); }
+function fillCategories(keep){
+  const cl=$('cluster').value;
+  fillSelect($('category'),distinct(feeData.filter(d=>d.cluster===cl).map(d=>d.category)),keep,'Select Category');
+}
+function fillSubcats(keep){
+  const cl=$('cluster').value, ca=$('category').value;
+  fillSelect($('subcat'),distinct(feeData.filter(d=>d.cluster===cl&&d.category===ca).map(d=>d.subCategory)),keep,'Select Sub Category');
+}
+function avgRate(list,isCP){ return list.length? list.reduce((s,d)=>s+(isCP?d.rateCCB:d.rateNoCCB),0)/list.length : 0; }
+// Recompute the auto commission rate (× 1.08 SST) and show it as the commPct placeholder
+function updateCommission(){
+  const isCP=$('cashOn').checked;
+  // a value of PH means the "Select …" prompt is showing → treat as not chosen
+  const cl=$('cluster').value===PH?'':$('cluster').value;
+  const ca=$('category').value===PH?'':$('category').value;
+  const sc=$('subcat').value===PH?'':$('subcat').value;
+  let rate=0;
+  const exact=feeData.find(d=>d.cluster===cl&&d.category===ca&&d.subCategory===sc);
+  if(sc!==''&&exact) rate=isCP?exact.rateCCB:exact.rateNoCCB;
+  else if(ca) rate=avgRate(feeData.filter(d=>d.cluster===cl&&d.category===ca),isCP);
+  else if(cl) rate=avgRate(feeData.filter(d=>d.cluster===cl),isCP);
+  else rate=avgRate(feeData,isCP);
+  const withSST=rate*1.08;
+  $('commPct').value='';                       // clear manual entry so the auto rate shows
+  $('commPct').placeholder=withSST.toFixed(2)+'%';
+  calc(); persist();
+}
+
+function calc(){
+  const price=num('price'), sd=num('sellerDisc');
+  const shipBuyer=num('shipBuyer'), actualShip=num('actualShip'), rebate=num('rebateShip');
+  // Shopee Discount is informational only — NOT used in fees or income (matches reference)
+  const basePrice = Math.max(0, price - sd);            // base for item fees
+  const transBase = basePrice + shipBuyer*1.06;         // transaction base = base + shipping+6% SST on shipping
+
+  // Commission (auto from category unless manually typed)
+  const commP=commRate();
+  const comm=round2(basePrice*commP/100); $('commRM').value=f2(comm);
+  // Transaction (SST-aware rate)
+  const txnP=txnRate();
+  const txn=round2(transBase*txnP/100); $('txnRM').value=f2(txn);
+  $('txnHint').textContent = ($('sstOn').checked && txnP!==num('txnPct')) ? ('+SST → '+txnP.toFixed(2)+'%') : '';
+
+  // Service fees (all on basePrice)
+  const cashOn=$('cashOn').checked, cashP=num('cashPct');
+  let cash = cashOn ? round2(basePrice*cashP/100) : 0;
+  const cashEl=$('cashRM');
+  if(cash>108){cash=108.00; cashEl.classList.add('cap'); cashEl.title='Capped at RM108.00 (RM100 + 8% SST)';}
+  else{cashEl.classList.remove('cap'); cashEl.removeAttribute('title');}
+  cashEl.value=f2(cash); $('fr_cash').classList.toggle('on',cashOn);
+
+  const liveOn=$('liveOn').checked, liveP=num('livePct');
+  const live = liveOn?round2(basePrice*liveP/100):0;
+  $('liveRM').value=f2(live); $('fr_live').classList.toggle('on',liveOn);
+
+  const adsOn=$('adsOn').checked, adsP=num('adsPct');
+  const ads = adsOn?round2(basePrice*adsP/100):0;
+  $('adsRM').value=f2(ads); $('fr_ads').classList.toggle('on',adsOn);
+
+  const platOn=$('platOn').checked, platRM=platOn?num('platRM'):0;
+  $('fr_plat').classList.toggle('on',platOn);
+
+  // Secondary: AMS (never SST'd, excluded from fee rate) + Ship Fee Saver (fixed)
+  const amsRM=round2(basePrice*num('amsPct')/100); $('amsRM').value=f2(amsRM);
+  const saverOn=$('saverOn').checked;
+  const saverRM = saverOn ? ($('prefSeller').checked?0.18:0.28) : 0;
+  $('saverRM').value=f2(saverRM); $('fr_saver').classList.toggle('on',saverOn);
+  const adjust=num('adjust');
+
+  // Totals (match reference exactly)
+  const serviceRM = cash+live+ads+platRM;
+  const primaryFee = comm+txn+serviceRM;               // headline "Total Fee" RM
+  const totalFee = primaryFee + amsRM + saverRM;        // used for income
+
+  const totRatePct = commP + txnP + (cashOn?cashP:0) + (liveOn?liveP:0) + (adsOn?adsP:0);
+  $('totRate').textContent=pct(totRatePct);
+  $('totFeeRM').textContent=f2(primaryFee);
+
+  const otherFee = amsRM + saverRM + adjust;
+  $('totOther').textContent=f2(otherFee);
+
+  // ORDER INCOME  (reference formula)
+  const income = basePrice + shipBuyer - actualShip + rebate - totalFee + adjust;
+  $('income').textContent=money(income);
+
+  // NET PROFIT (extension: after your own costs)
+  const cost = num('cogs')+num('shipCost')+num('adCost')+num('otherCost');
+  const netProfit = income - cost;
+  $('netProfit').textContent=money(netProfit);
+  const pl=$('profitLine'); pl.classList.toggle('pos',netProfit>=0); pl.classList.toggle('neg',netProfit<0);
+
+  // metrics
+  const revenue = basePrice + shipBuyer;
+  const orderMargin = price>0 ? income/price*100 : NaN;   // reference margin = income / price
+  const netMargin   = revenue>0 ? netProfit/revenue*100 : NaN;
+  const roi         = cost>0 ? netProfit/cost*100 : NaN;
+  $('orderMargin').textContent = isFinite(orderMargin)?pct(orderMargin):'–';
+  setBadge('bMargin','netMargin',netMargin,netProfit);
+  setBadge('bRoi','roi',roi,netProfit);
+
+  return {income,netProfit,totFeeRM:primaryFee,orderMargin,netMargin};
+}
+function setBadge(boxId,valId,v,profit){
+  const el=$(valId); el.textContent=isFinite(v)?pct(v):'–';
+  const box=$(boxId); box.classList.toggle('pos',isFinite(v)&&profit>=0); box.classList.toggle('neg',isFinite(v)&&profit<0);
+}
+
+// wire up
+[...document.querySelectorAll('input,select')].forEach(el=>{
+  el.addEventListener('input',()=>{calc();persist();});
+  el.addEventListener('change',()=>{calc();persist();});
+});
+// category cascade + commission auto-fill
+$('cluster').addEventListener('change',()=>{fillCategories();fillSubcats();updateCommission();});
+$('category').addEventListener('change',()=>{fillSubcats();updateCommission();});
+$('subcat').addEventListener('change',updateCommission);
+$('cashOn').addEventListener('change',updateCommission);   // With-CCB vs No-CCB rate
+
+// ---- persistence of current form ----
+const LS_FORM='shopeeCalc.form', LS_SAVED='shopeeCalc.saved';
+function persist(){
+  const o={};FIELDS.forEach(f=>o[f]=$(f).value);CHECKS.forEach(c=>o[c]=$(c).checked);
+  localStorage.setItem(LS_FORM,JSON.stringify(o));
+}
+function restore(){
+  let o={}; try{o=JSON.parse(localStorage.getItem(LS_FORM)||'{}');}catch(e){}
+  // build the category cascade first; prompts show until a value is chosen/restored
+  fillClusters(o.cluster);
+  fillCategories(o.category);
+  fillSubcats(o.subcat);
+  CHECKS.forEach(c=>{if(o[c]!==undefined)$(c).checked=o[c];});
+  FIELDS.forEach(f=>{ if(['cluster','category','subcat'].includes(f))return; if(o[f]!==undefined)$(f).value=o[f]; });
+  updateCommission();
+}
+
+// ---- toast ----
+let tT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),1900);}
+
+// ---- reset / clear ----
+$('resetBtn').addEventListener('click',()=>{
+  const preserve=$('prefSettings').checked;
+  ['price','sellerDisc','shopeeDisc','shipBuyer','actualShip','rebateShip','cogs','shipCost','adCost','otherCost','adjust','sku'].forEach(f=>$(f).value='');
+  $('commPct').value='';   // let it re-derive from the category
+  if(!preserve){
+    $('txnPct').value='3.50';$('cashPct').value='5.94';$('livePct').value='3.24';
+    $('adsPct').value='5.40';$('platRM').value='0.54';$('amsPct').value='';
+    $('cashOn').checked=true;$('liveOn').checked=false;$('adsOn').checked=false;$('platOn').checked=true;$('saverOn').checked=false;
+    fillClusters();fillCategories();fillSubcats();
+  }
+  updateCommission();toast('Amounts reset');
+});
+$('clearBtn').addEventListener('click',()=>{
+  document.querySelectorAll('input[type=number],input[type=text]').forEach(i=>i.value='');
+  calc();persist();toast('Cleared');
+});
+
+// ---- save list ----
+function getSaved(){try{return JSON.parse(localStorage.getItem(LS_SAVED)||'[]');}catch(e){return[];}}
+function setSaved(a){localStorage.setItem(LS_SAVED,JSON.stringify(a));}
+function saveCurrent(){
+  const r=calc();const o={};FIELDS.forEach(f=>o[f]=$(f).value);CHECKS.forEach(c=>o[c]=$(c).checked);
+  o._sku=$('sku').value||('SKU-'+(getSaved().length+1));
+  o._price=num('price');o._fees=r.totFeeRM;o._income=r.income;o._profit=r.netProfit;o._margin=r.netMargin;o._omargin=r.orderMargin;
+  const a=getSaved();
+  const i=a.findIndex(x=>x._sku===o._sku);
+  if(i>=0)a[i]=o;else a.push(o);
+  setSaved(a);renderSaved();toast('Saved "'+o._sku+'"');$('savedBox').classList.add('show');
+}
+$('saveBtn').addEventListener('click',saveCurrent);
+$('saveTop').addEventListener('click',saveCurrent);
+$('listTop').addEventListener('click',()=>{$('savedBox').classList.toggle('show');renderSaved();});
+
+function renderSaved(){
+  const a=getSaved();const tb=$('savedRows');tb.innerHTML='';
+  if(!a.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">No saved calculations yet.</td></tr>';return;}
+  a.forEach((o,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${o._sku}</td><td>${f2(o._price||0)}</td>
+      <td>${money(o._income||0)} <span style="color:var(--muted);font-weight:400">(${isFinite(o._omargin)?pct(o._omargin):'–'})</span></td>
+      <td style="color:${(o._profit||0)<0?'var(--red)':'var(--green)'};font-weight:700">${money(o._profit||0)}</td>
+      <td><span class="load" data-i="${idx}">load</span> &nbsp;<span class="del" data-d="${idx}">✕</span></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.load').forEach(el=>el.addEventListener('click',()=>loadSaved(+el.dataset.i)));
+  tb.querySelectorAll('.del').forEach(el=>el.addEventListener('click',()=>{const a=getSaved();a.splice(+el.dataset.d,1);setSaved(a);renderSaved();}));
+}
+function loadSaved(i){
+  const o=getSaved()[i];if(!o)return;
+  FIELDS.forEach(f=>{if(o[f]!==undefined)$(f).value=o[f];});
+  CHECKS.forEach(c=>{if(o[c]!==undefined)$(c).checked=o[c];});
+  calc();persist();toast('Loaded "'+o._sku+'"');window.scrollTo({top:0,behavior:'smooth'});
+}
+$('clearSaved').addEventListener('click',()=>{if(confirm('Delete all saved calculations?')){setSaved([]);renderSaved();}});
+
+// ---- export CSV ----
+$('exportBtn').addEventListener('click',()=>{
+  const a=getSaved();
+  const cur=(()=>{const r=calc();const o={};FIELDS.forEach(f=>o[f]=$(f).value);
+    o._sku=$('sku').value||'CURRENT';o._price=num('price');o._fees=r.totFeeRM;o._income=r.income;o._profit=r.netProfit;o._margin=r.netMargin;return o;})();
+  const rows=a.length?a:[cur];
+  const head=['SKU','Product Price','Seller Disc','Shopee Disc','Ship by Buyer','Actual Ship','Rebate','Comm%','Txn%','Cashback%','Total Fees','Order Income','Product Cost','Shipping Cost','Ad Cost','Other Cost','Net Profit','Net Margin%'];
+  const line=o=>[o._sku,o.price,o.sellerDisc,o.shopeeDisc,o.shipBuyer,o.actualShip,o.rebateShip,o.commPct,o.txnPct,o.cashPct,
+    (o._fees||0).toFixed(2),(o._income||0).toFixed(2),o.cogs,o.shipCost,o.adCost,o.otherCost,(o._profit||0).toFixed(2),isFinite(o._margin)?o._margin.toFixed(2):''];
+  const csv=[head.join(','),...rows.map(o=>line(o).map(v=>`"${v??''}"`).join(','))].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');link.href=url;link.download='shopee-profit.csv';link.click();
+  URL.revokeObjectURL(url);toast('Exported CSV');
+});
+$('printBtn').addEventListener('click',()=>window.print());
+
+// ---- settings drawer ----
+function openD(){$('drawer').classList.add('show');$('drawerBg').classList.add('show');}
+function closeD(){$('drawer').classList.remove('show');$('drawerBg').classList.remove('show');}
+$('gear').addEventListener('click',openD);$('closeDrawer').addEventListener('click',closeD);$('drawerBg').addEventListener('click',closeD);
+
+// ---- init ----
+restore();calc();renderSaved();
+</script>
+</body>
+</html>
